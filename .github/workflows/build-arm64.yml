@@ -22,7 +22,7 @@ jobs:
         run: |
           f=buildSrc/src/main/groovy/tool/generator/GenerateLibs.groovy
           # drop x86-only flags from the default linux64 target
-          sed -i "s|addFreeTypeIfEnabled(linux64)|linux64.cppFlags = linux64.cppFlags.replace('-mfpmath=sse','').replace('-msse2','').replace('-m64',''); linux64.linkerFlags = linux64.linkerFlags.replace('-m64',''); addFreeTypeIfEnabled(linux64)|" "$f"
+          sed -i 's#addFreeTypeIfEnabled(linux64)#linux64.cppFlags = linux64.cppFlags.replaceAll("-m(sse[0-9.]*|fpmath=[a-z]+|64|32)", ""); linux64.linkerFlags = linux64.linkerFlags.replaceAll("-m(64|32)", ""); addFreeTypeIfEnabled(linux64)#' "$f"
           grep -n "linux64" "$f"
 
       - name: Build
