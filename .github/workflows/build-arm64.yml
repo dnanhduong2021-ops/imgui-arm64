@@ -1,0 +1,41 @@
+# Build libimgui-java64.so for Linux ARM64 (imgui-java v1.90.0)
+# Usage: create a new GitHub repo, put this file at .github/workflows/build-arm64.yml,
+# push, then open the Actions tab -> "Build imgui ARM64" -> Run workflow.
+# Download the artifact "libimgui-java64-aarch64" at the end.
+name: Build imgui ARM64
+on: workflow_dispatch
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm   # native ARM64 runner
+    steps:
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Get imgui-java 1.90.0 (with submodules)
+        run: git clone --depth 1 --branch v1.90.0 --recurse-submodules https://github.com/SpaiR/imgui-java.git src
+
+      - name: Patch build flags for aarch64
+        working-directory: src
+        run: |
+          f=buildSrc/src/main/groovy/tool/generator/GenerateLibs.groovy
+          # drop x86-only flags from the default linux64 target
+          sed -i "s|addFreeTypeIfEnabled(linux64)|linux64.cppFlags = linux64.cppFlags.replace('-mfpmath=sse','').replace('-msse2','').replace('-m64',''); linux64.linkerFlags = linux64.linkerFlags.replace('-m64',''); addFreeTypeIfEnabled(linux64)|" "$f"
+          grep -n "linux64" "$f"
+
+      - name: Build
+        working-directory: src
+        run: ./gradlew imgui-binding:generateLibs -Denvs=linux -Dfreetype=false
+
+      - name: Check result
+        run: |
+          f=/tmp/imgui/libsNative/linux64/libimgui-java64.so
+          file "$f"        # must say: ARM aarch64
+          cp "$f" ./libimgui-java64.so
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: libimgui-java64-aarch64
+          path: libimgui-java64.so
